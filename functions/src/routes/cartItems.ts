@@ -5,38 +5,53 @@ import cartItem from "../models/cartItem";
 
 const cartRoutes = express.Router();
 
+//query string maxPrice, product, pageSize
 cartRoutes.get("/cart-items", async (req, res) => {
   try {
-    const client = await getClient();
-    const results = await client
-      .db()
-      .collection<cartItem>("cartItems")
-      .find()
-      .toArray();
-    console.log(results);
-    //query string maxPrice, product, pageSize
-    res.status(200).json(results);
+    const maxPrice: number = Number(req.query.maxPrice as string);
+    const product: string = req.query.product as string;
+    const pageSize: number = Number(req.query.pageSize as string) || 0;
+    if (maxPrice) {
+      const client = await getClient();
+      const results = await client.db().collection<cartItem>("cartItems").find({ price: { $lte: maxPrice } }).toArray();
+      console.log(results);
+      res.status(200).json(results);
+    } else if (product) {
+      const client = await getClient();
+      const results = await client.db().collection<cartItem>("cartItems").find({ product: product }).toArray();
+      console.log(results);
+      res.status(200).json(results);
+    } else if (pageSize) {
+      const client = await getClient();
+      const results = await client.db().collection<cartItem>("cartItems").find().limit(pageSize).toArray();
+      console.log(results);
+      res.status(200).json(results);
+    } else {
+      const client = await getClient();
+      const results = await client.db().collection<cartItem>("cartItems").find().toArray();
+      console.log(results);
+      res.status(200).json(results);
+    }
   } catch (err) {
     console.error("Error: ", err);
-    res.status(500).json({ message: "Internal Server error." });
+    res.status(500).json({ message: "Internal Server Error." });
   }
 });
 
 //GET by id
 cartRoutes.get("/cart-items/:id", async (req, res) => {
-    const id = req.params.id;
-    try {
+  const id = req.params.id;
+  try {
     const client = await getClient();
     const results = await client
       .db()
       .collection<cartItem>("cartItems")
-      .findOne({_id: new ObjectId(id)});
-      if (results) {
-        res.status(200).json(results);
-      } else {
-        res.status(404).json({ message: "ID Not Found" });
-      }
-
+      .findOne({ _id: new ObjectId(id) });
+    if (results) {
+      res.status(200).json(results);
+    } else {
+      res.status(404).json({ message: "ID Not Found" });
+    }
   } catch (err) {
     console.error("Error: ", err);
     res.status(500).json({ message: "Internal Server Error" });
